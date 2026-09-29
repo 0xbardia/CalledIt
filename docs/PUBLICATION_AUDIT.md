@@ -38,6 +38,10 @@ The product and everything needed to rebuild, verify, and run it:
   pytest cache tag.
 - No 32-byte private key anywhere in the tree. The only `"0x…"` 64-hex values
   are `"tx":` fields in the Studio evidence files.
+- Eight `scripts/*.test.mjs` tests read the excluded workspace files listed
+  above. They skip themselves when those files are absent, so a fresh clone runs
+  the suite with zero failures instead of eight red tests. In the authoring
+  workspace the same suite passes all 195.
 - `src/` and `server/` contain no private key, no account construction, and no
   transaction signing. The only two places that read a key are
   `scripts/studio-certify.mjs` and `scripts/studio-lifecycle.mjs`, and neither

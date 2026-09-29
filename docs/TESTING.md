@@ -48,6 +48,13 @@ npm run test:db   # 36 passed against the configured database
 `npm test` covers chain-result finality, malformed auth input, pagination,
 reputation, forecast preflight, and the platform script invariants.
 
+In a published checkout, eight of the `scripts/*.test.mjs` tests are **skipped**,
+not failed. They assert against the authoring workspace's own files — its skill
+notes, its agent instructions, and the build-flag file that the Vite wrapper
+treats as optional. That workspace is not part of the public repository; see
+[PUBLICATION_AUDIT.md](PUBLICATION_AUDIT.md). Every product assertion still
+runs, and the same suite passes all 195 with the workspace present.
+
 `npm run test:db` needs `DATABASE_URL`; it runs the same SQL production runs
 against the configured database and cleans up after itself.
 

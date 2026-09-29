@@ -14,6 +14,12 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { handOver, parseWriteAtomicArgs, stagingError } from "./write-atomic.mjs";
 
+// The card and banner recipes this test reads live in the authoring
+// workspace's skill notes, which a published checkout does not carry.
+const skipWithoutWorkspace = existsSync(join(dirname(fileURLToPath(import.meta.url)), "..", ".grok/skills/og"))
+  ? undefined
+  : "authoring workspace is not part of the published tree";
+
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(TEMPLATE_ROOT, "scripts/write-atomic.mjs");
 
@@ -164,7 +170,7 @@ test("cli: relative paths follow the script's root, not the caller's cwd", () =>
   assert.equal(existsSync(join(root, "public/og.jpg")), false);
 });
 
-test("every hand-over the og skill prints is one this script accepts", () => {
+test("every hand-over the og skill prints is one this script accepts", { skip: skipWithoutWorkspace }, () => {
   // The card and banner recipes live in the skill's references/, not SKILL.md.
   const skillDir = join(TEMPLATE_ROOT, ".grok/skills/og");
   const docs = [
