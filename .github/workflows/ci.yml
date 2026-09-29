@@ -8,6 +8,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# `npm ci` needs --legacy-peer-deps. package-lock.json ships RainbowKit 2.2.8,
+# whose declared peer range is wagmi@^2, while the project deliberately runs
+# wagmi 3.7.7. The lockfile — not npm's peer re-resolution — is the source of
+# truth for what was built, certified and deployed, so the install is pinned to
+# it rather than changed.
+
 jobs:
   app:
     name: Lint, types, unit tests, build
@@ -18,7 +24,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -31,7 +37,7 @@ jobs:
     name: Contract Direct Mode and linter
     runs-on: ubuntu-latest
     env:
-      # The GenVM release that contains the runner pinned by the contract's
+      # The GenVM release that carries the runner pinned by the contract's
       # Depends header. Bumping it means re-auditing the SDK, so it is pinned
       # here rather than tracking "latest".
       GENVM_VERSION: v0.3.0-rc7
@@ -49,6 +55,17 @@ jobs:
           genvm-lint download --version "$GENVM_VERSION"
           genvm-lint check contracts/calledit.py
           genvm-lint typecheck contracts/calledit.py
+      - name: Seed the Direct Mode runner bundle
+        run: |
+          # genlayer-test 0.29.2 looks for `genvm-universal.tar.xz`, an asset
+          # name recent GenVM releases no longer publish. It skips the download
+          # when its cache already holds `genvm-universal-<version>.tar.xz`, so
+          # seed it from the pinned release's current asset name. This also
+          # removes the dependency on whatever "latest" happens to be.
+          mkdir -p ~/.cache/gltest-direct
+          curl --fail --location --retry 3 --silent --show-error \
+            -o ~/.cache/gltest-direct/genvm-universal-$GENVM_VERSION.tar.xz \
+            "https://github.com/genlayerlabs/genvm/releases/download/$GENVM_VERSION/genvm-runners-all.tar.xz"
       - name: Direct Mode suite
         run: python -m pytest tests/contract -q
       - name: The committed source must be the certified source
@@ -79,6 +96,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: node scripts/migrate.mjs
       - run: npm run test:db

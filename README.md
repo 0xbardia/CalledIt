@@ -167,10 +167,16 @@ Requires Node 22 and Python 3.12 for the contract suite.
 ```bash
 git clone https://github.com/0xbardia/CalledIt
 cd CalledIt
-npm ci
+npm ci --legacy-peer-deps
 cp .env.example .env        # then fill in the values below
 npm run dev                 # http://127.0.0.1:8080
 ```
+
+Use `--legacy-peer-deps`. The lockfile ships RainbowKit 2.2.8, whose declared
+peer range is `wagmi@^2`, while the project runs wagmi 3.7.7. The lockfile is
+what was built and certified, so the install follows it instead of asking npm to
+re-resolve peers. Changing that pairing is a dependency change, not a setup
+step.
 
 The application gates:
 

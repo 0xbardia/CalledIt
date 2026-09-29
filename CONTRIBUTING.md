@@ -3,9 +3,23 @@
 ## Setup
 
 1. Use Node 22 and Python 3.12.
-2. `npm install`
+2. `npm ci --legacy-peer-deps` — RainbowKit 2.2.8 declares a `wagmi@^2` peer
+   range while the project runs wagmi 3.7.7, so npm's peer re-resolution has to
+   be skipped to install the lockfile as committed.
 3. `cp .env.example .env` and set `APP_URL` and any database settings.
 4. Install `genlayer-test` and `genvm-linter` into a Python 3.12 environment if you will touch the contract.
+   The Direct Mode suite downloads the GenVM runner bundle on first use. Recent
+   GenVM releases publish it as `genvm-runners-all.tar.xz`, while
+   `genlayer-test` 0.29.2 still asks for the older `genvm-universal.tar.xz`
+   name. If the download 404s, seed the cache once:
+
+   ```bash
+   mkdir -p ~/.cache/gltest-direct
+   curl --fail --location -o ~/.cache/gltest-direct/genvm-universal-v0.3.0-rc7.tar.xz \
+     https://github.com/genlayerlabs/genvm/releases/download/v0.3.0-rc7/genvm-runners-all.tar.xz
+   ```
+
+   CI does this for you.
 
 ## Changing the contract
 
