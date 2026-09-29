@@ -1,0 +1,84 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Lint, types, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          ALLOW_SIMULATOR: "false"
+          NODE_ENV: production
+
+  contract:
+    name: Contract Direct Mode and linter
+    runs-on: ubuntu-latest
+    env:
+      # The GenVM release that contains the runner pinned by the contract's
+      # Depends header. Bumping it means re-auditing the SDK, so it is pinned
+      # here rather than tracking "latest".
+      GENVM_VERSION: v0.3.0-rc7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the contract toolchain
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install genlayer-test pytest genvm-linter
+      - name: Lint, validate and typecheck the contract
+        run: |
+          genvm-lint download --version "$GENVM_VERSION"
+          genvm-lint check contracts/calledit.py
+          genvm-lint typecheck contracts/calledit.py
+      - name: Direct Mode suite
+        run: python -m pytest tests/contract -q
+      - name: The committed source must be the certified source
+        run: |
+          echo "d246b9505f0a2cc0003b7487c5eeae01847d7a7f70be32c9440cb0322fdef02c  contracts/calledit.py" | sha256sum --check
+
+  backend:
+    name: Backend certification against PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: calledit
+          POSTGRES_USER: calledit
+          POSTGRES_PASSWORD: calledit
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U calledit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://calledit:calledit@127.0.0.1:5432/calledit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/migrate.mjs
+      - run: npm run test:db
