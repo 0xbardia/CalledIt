@@ -1,0 +1,225 @@
+{
+  "network": "studionet",
+  "chainId": "0xf22f",
+  "rpc": "https://studio.genlayer.com/api",
+  "deployed": true,
+  "contractAddress": "0xeF1C53D6B17Fbf87612Fb6AA51B453c370f1a6da",
+  "deploymentTx": "0x516eff34beafa770dcca629967ad588462740ac1094f7bec575ba5bb744f9ed5",
+  "deploymentStatus": "ACCEPTED",
+  "reads": [
+    {
+      "functionName": "get_protocol",
+      "args": [],
+      "ok": true,
+      "result": "{\"admin\": \"0x1a6aa1862ac7f021977199af0726e6af4fb26fa0\", \"categories\": [\"BINARY_OUTCOME\", \"EVENT_OCCURRENCE\", \"PRICE_THRESHOLD\"], \"early_policy\": \"ALLOW_EARLY_POSITIVE\", \"forecast_count\": 0, \"import_domains\": [\"x.com\", \"twitter.com\", \"warpcast.com\", \"farcaster.xyz\", \"github.com\", \"paragraph.xyz\", \"mirror.xyz\"], \"name\": \"CalledIt\", \"negative_before_deadline\": false, \"policy_version\": 1, \"resolution_domains\": [\"reuters.com\", \"apnews.com\", \"bbc.com\", \"bbc.co.uk\", \"bloomberg.com\", \"coindesk.com\", \"coingecko.com\", \"coinmarketcap.com\", \"espn.com\", \"sec.gov\", \"federalreserve.gov\"], \"verdicts\": [\"AMBIGUOUS\", \"CORRECT\", \"INCORRECT\", \"UNRESOLVED\"], \"version\": \"1.0.0\"}",
+      "error": null
+    },
+    {
+      "functionName": "get_forecast_count",
+      "args": [],
+      "ok": true,
+      "result": 0,
+      "error": null
+    },
+    {
+      "functionName": "get_resolution_domains",
+      "args": [],
+      "ok": true,
+      "result": "[\"reuters.com\", \"apnews.com\", \"bbc.com\", \"bbc.co.uk\", \"bloomberg.com\", \"coindesk.com\", \"coingecko.com\", \"coinmarketcap.com\", \"espn.com\", \"sec.gov\", \"federalreserve.gov\"]",
+      "error": null
+    },
+    {
+      "functionName": "get_import_domains",
+      "args": [],
+      "ok": true,
+      "result": "[\"x.com\", \"twitter.com\", \"warpcast.com\", \"farcaster.xyz\", \"github.com\", \"paragraph.xyz\", \"mirror.xyz\"]",
+      "error": null
+    },
+    {
+      "functionName": "get_admin",
+      "args": [],
+      "ok": true,
+      "result": "0x1a6aa1862ac7f021977199af0726e6af4fb26fa0",
+      "error": null
+    },
+    {
+      "functionName": "get_policy_version",
+      "args": [],
+      "ok": true,
+      "result": 1,
+      "error": null
+    },
+    {
+      "functionName": "is_source_domain_allowed",
+      "args": [
+        "coingecko.com"
+      ],
+      "ok": true,
+      "result": true,
+      "error": null
+    },
+    {
+      "functionName": "is_source_domain_allowed",
+      "args": [
+        "evil.example"
+      ],
+      "ok": true,
+      "result": false,
+      "error": null
+    },
+    {
+      "functionName": "is_import_domain_allowed",
+      "args": [
+        "x.com"
+      ],
+      "ok": true,
+      "result": true,
+      "error": null
+    },
+    {
+      "functionName": "is_import_domain_allowed",
+      "args": [
+        "localhost"
+      ],
+      "ok": true,
+      "result": false,
+      "error": null
+    },
+    {
+      "functionName": "preview_url_policy",
+      "args": [
+        "https://www.coingecko.com/en/coins/bitcoin",
+        "resolution"
+      ],
+      "ok": true,
+      "result": "{\"host\": \"www.coingecko.com\", \"ok\": true, \"reason\": \"OK\"}",
+      "error": null
+    },
+    {
+      "functionName": "preview_url_policy",
+      "args": [
+        "http://www.coingecko.com/en/coins/bitcoin",
+        "resolution"
+      ],
+      "ok": true,
+      "result": "{\"host\": \"\", \"ok\": false, \"reason\": \"URL_SCHEME\"}",
+      "error": null
+    },
+    {
+      "functionName": "preview_url_policy",
+      "args": [
+        "https://127.0.0.1/secret",
+        "resolution"
+      ],
+      "ok": true,
+      "result": "{\"host\": \"\", \"ok\": false, \"reason\": \"URL_IP_LITERAL\"}",
+      "error": null
+    },
+    {
+      "functionName": "preview_url_policy",
+      "args": [
+        "https://user:pass@x.com/a",
+        "import"
+      ],
+      "ok": true,
+      "result": "{\"host\": \"\", \"ok\": false, \"reason\": \"URL_USERINFO\"}",
+      "error": null
+    },
+    {
+      "functionName": "get_author_forecast_ids",
+      "args": [
+        "0x1a6Aa1862aC7F021977199Af0726E6af4fb26fa0",
+        0,
+        10
+      ],
+      "ok": true,
+      "result": "[]",
+      "error": null
+    },
+    {
+      "functionName": "get_forecast",
+      "args": [
+        1
+      ],
+      "ok": false,
+      "result": null,
+      "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.56.9"
+    },
+    {
+      "functionName": "get_forecast_status",
+      "args": [
+        1
+      ],
+      "ok": false,
+      "result": null,
+      "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.56.9"
+    },
+    {
+      "functionName": "get_forecast_author",
+      "args": [
+        1
+      ],
+      "ok": false,
+      "result": null,
+      "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.56.9"
+    },
+    {
+      "functionName": "get_forecast_interpretation",
+      "args": [
+        1
+      ],
+      "ok": false,
+      "result": null,
+      "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.56.9"
+    },
+    {
+      "functionName": "get_forecast_verdict",
+      "args": [
+        1
+      ],
+      "ok": false,
+      "result": null,
+      "error": "Missing or invalid parameters.\nDouble check you have provided the correct parameters.\n\nDetails: execution failed\nVersion: viem@2.56.9"
+    }
+  ],
+  "writes": [
+    {
+      "name": "ambiguous",
+      "functionName": "lock_native_forecast",
+      "args": [
+        "ETH is going crazy soon.",
+        "2027-12-31"
+      ],
+      "ok": false,
+      "tx": "0x7242ad0b3962fbdf51297212eb1f536ddc0948b89edb3498aa850e252886de31",
+      "status": "ACCEPTED",
+      "result": null,
+      "error": null,
+      "resultName": "MAJORITY_AGREE",
+      "execution": "rollback",
+      "payload": "AMBIGUOUS_DEADLINE"
+    },
+    {
+      "name": "native-lock",
+      "functionName": "lock_native_forecast",
+      "args": [
+        "BTC will trade above $150,000 before December 31, 2027.",
+        "2027-12-31"
+      ],
+      "ok": false,
+      "tx": "0xf6b36bbe3eee858280c83e150439e07bc38301a2da82382f91a0497dbbf84166",
+      "status": "UNDETERMINED",
+      "result": null,
+      "error": null,
+      "resultName": "MAJORITY_DISAGREE",
+      "execution": "rollback",
+      "payload": "SCHEMA"
+    }
+  ],
+  "error": null,
+  "startedAt": "2026-09-26T02:04:51.802Z",
+  "deployer": "0x1a6Aa1862aC7F021977199Af0726E6af4fb26fa0",
+  "balanceWei": "0xde0b6b3a7640000",
+  "deploymentResult": "MAJORITY_AGREE",
+  "finishedAt": "2026-09-26T02:05:18.491Z"
+}
