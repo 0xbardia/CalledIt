@@ -1,0 +1,39 @@
+# Secrets and deployment configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+.output
+.vercel
+.nitro
+.genvm
+coverage
+*.tsbuildinfo
+.tanstack
+
+# Caches
+__pycache__
+.pytest_cache
+.mypy_cache
+*.pyc
+.node_modules.lock
+
+# Browser test output
+playwright-report
+test-results
+# Local QA captures. The curated, published set lives in docs/screenshots/.
+/screenshots/
+
+# Python toolchain for contract Direct Mode (see docs/TESTING.md)
+.venv*/
+
+# Authoring workspace. Not runtime product content; see docs/PUBLICATION_AUDIT.md
+.grok/
+AGENTS.md
+attachments/
+startup.sh
