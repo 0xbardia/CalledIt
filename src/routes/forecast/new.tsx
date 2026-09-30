@@ -190,7 +190,14 @@ function NewForecast() {
         </div>
         <label className="block">
           <span className="text-sm font-semibold">The sentence</span>
-          <textarea value={text} onChange={(event) => setText(event.target.value)} rows={5} className="field" />
+          <textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            rows={5}
+            className="field"
+            aria-invalid={!check.ok || undefined}
+            aria-describedby={!check.ok ? "forecast-check" : undefined}
+          />
         </label>
         <label className="block">
           <span className="text-sm font-semibold">Deadline, the same day named in the sentence</span>
@@ -210,7 +217,13 @@ function NewForecast() {
             </p>
           </>
         ) : null}
-        {!check.ok ? <p className="note note-warn" role="status">{check.message}</p> : <p className="note note-good">The sentence names its own deadline. The chain still has to accept the reading.</p>}
+        {!check.ok ? (
+          <p className="note note-warn" role="status" id="forecast-check">
+            {check.message}
+          </p>
+        ) : (
+          <p className="note note-good">The sentence names its own deadline. The chain still has to accept the reading.</p>
+        )}
         {error ? <p className={phase === "failed" ? "note note-bad" : "note"} role={phase === "failed" ? "alert" : "status"}>{error}</p> : null}
         {hash ? (
           <p className="note" role="status">
