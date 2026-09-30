@@ -54,3 +54,31 @@ test("keeps the wallet closed for evidence the contract would revert", () => {
   const crowded = ["a", "b", "c", "d"].map((item) => `https://www.coingecko.com/${item}`).join("\n");
   assert.equal(preflightEvidence(crowded, ["coingecko.com"]).ok, false);
 });
+
+test("refuses a deadline that is not still ahead", () => {
+  const past = preflightForecast("BTC will trade above $150,000 before January 1, 2020.", "2020-01-01");
+  assert.equal(past.ok, false);
+  if (!past.ok) assert.equal(past.code, "DEADLINE_PAST");
+  const today = preflightForecast("BTC will trade above $150,000 before December 31, 2020.", "2020-12-31");
+  assert.equal(today.ok, false);
+  if (!today.ok) assert.equal(today.code, "DEADLINE_PAST");
+});
+
+test("refuses a deadline beyond the horizon the chain accepts", () => {
+  const far = preflightForecast("BTC will trade above $150,000 before December 31, 2050.", "2050-12-31");
+  assert.equal(far.ok, false);
+  if (!far.ok) assert.equal(far.code, "DEADLINE_HORIZON");
+});
+
+test("refuses an unreadable grouped amount before the wallet opens", () => {
+  for (const amount of ["$1,2", "$12,34,567", "$1,,000"]) {
+    const result = preflightForecast(
+      `BTC will trade above ${amount} before December 31, 2027.`,
+      "2027-12-31",
+    );
+    assert.equal(result.ok, false, amount);
+    if (!result.ok) assert.equal(result.code, "MALFORMED_NUMBER", amount);
+  }
+  const good = preflightForecast("BTC will trade above $1,000,000 before December 31, 2027.", "2027-12-31");
+  assert.equal(good.ok, true);
+});

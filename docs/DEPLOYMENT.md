@@ -55,8 +55,10 @@ Production must also set `NODE_ENV=production` and `ALLOW_SIMULATOR=false`.
 
 ```bash
 npm run build
-pm2 startOrReload ecosystem.config.cjs --update-env
+pm2 delete calledit
+pm2 start ecosystem.config.cjs
 pm2 save
+node scripts/verify-bundle.mjs
 ```
 
 `npm run build` runs the Vite production build and then `db:migrate`, which
@@ -65,10 +67,23 @@ each and records them in `_migrations`. It is safe to re-run. The build step
 inherits `.env` for `VITE_` values, so rebuild after any browser-visible
 configuration change.
 
-PM2 is configured for restart on crash and on reboot. The process serves the
-built output from `.vercel/output`, so **restart it after every build**; a
-running worker keeps serving the previous bundle and can answer 500 for a chunk
-that no longer exists on disk.
+**The process must be restarted after every build, and `startOrReload` is not
+enough.** The worker renders HTML from the bundle it loaded at start, so a
+reload that leaves the process running keeps the previous build's asset
+manifest while `.vercel/output` already holds the new one. The page still
+answers 200, but its stylesheet and client entry 404: the site renders unstyled
+and never hydrates. `delete` followed by `start` always restarts.
+
+`node scripts/verify-bundle.mjs` is the guard. It compares the assets the
+running server names against the files the build produced and exits non-zero
+on drift. Run it after every restart, against localhost or the public origin:
+
+```bash
+node scripts/verify-bundle.mjs
+BASE_URL=https://calledit.bydx.fun node scripts/verify-bundle.mjs
+```
+
+PM2 is configured for restart on crash and on reboot.
 
 Local Studio, several validators in Docker, is a separate gate from hosted
 Studionet. This host has no Docker, so local integration remains unverified and

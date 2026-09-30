@@ -37,3 +37,6 @@ test-results
 AGENTS.md
 attachments/
 startup.sh
+
+# PM2 home when PM2_HOME is not set and the config is evaluated from a checkout
+.pm2/

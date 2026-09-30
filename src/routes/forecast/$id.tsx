@@ -91,7 +91,16 @@ function ForecastPage() {
         <Field label="Network" value={forecast.network} />
         <Field label="Contract" value={forecast.contract_address} />
         <Field label="Chain status" value={chainLabel(forecast.chain_status)} />
-        <Field label="Transaction" value={forecast.tx_hash || "Not recorded"} />
+        <Field
+          label="Transaction"
+          value={
+            forecast.tx_hash ||
+            // Explain the gap rather than leaving a bare dash on the one page
+            // people share as proof. A lock made in this app always has its
+            // hash attached; one made by a script or another client does not.
+            "Not recorded. This lock was not made through this site, so the indexer never saw its transaction. The forecast and the verdict above are read from the contract itself."
+          }
+        />
       </dl>
       <p className="mt-6 text-sm">
         <Link to="/profile/$address" params={{ address: forecast.author }} className="underline">Author profile</Link>

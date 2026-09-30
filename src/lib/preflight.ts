@@ -13,6 +13,25 @@ const MONTHS: Record<string, number> = {
 
 export type Preflight = { ok: true } | { ok: false; code: string; message: string };
 
+// Contract parity: the chain keeps a deadline at least an hour ahead and no more
+// than ten years out. Same bounds, so the form never asks for a signature the
+// chain is going to refuse.
+const MIN_HORIZON_SECONDS = 3600;
+const MAX_HORIZON_SECONDS = 366 * 10 * 24 * 3600;
+
+// An amount is readable when its digits are grouped in threes, with an optional
+// fraction and a k/m/b suffix. "$1,2" and "$12,34,567" are not.
+const WELL_FORMED_AMOUNT = /^(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?[kmb]?$/i;
+
+/** Seconds from now until the deadline's end of day UTC, or null if unparseable. */
+function deadlineHorizonSeconds(deadlineIso: string): number | null {
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(deadlineIso)) return null;
+  const [year, month, day] = deadlineIso.split("-").map(Number);
+  const end = Date.UTC(year, month - 1, day, 23, 59, 59);
+  if (Number.isNaN(end)) return null;
+  return Math.floor((end - Date.now()) / 1000);
+}
+
 function explicitDates(text: string): Set<string> {
   const found = new Set<string>();
   for (const match of text.matchAll(ISO_DATE)) {
@@ -44,8 +63,37 @@ export function preflightForecast(text: string, deadlineIso: string): Preflight 
       message: "That text tries to override the protocol instructions, so it cannot be locked.",
     };
   }
+  // Contract parity for grouped amounts. The chain refuses an unreadable figure
+  // in code before consensus, so the wallet must not be opened for one.
+  for (const raw of cleaned.match(/\$\d[\d,]*(?:\.\d+)?[kmb]?\b/gi) ?? []) {
+    if (!WELL_FORMED_AMOUNT.test(raw.replace(/[$\s]/g, ""))) {
+      return {
+        ok: false,
+        code: "MALFORMED_NUMBER",
+        message: "That amount is not a readable number. Group the digits in threes, like $200,000.",
+      };
+    }
+  }
   if (!/^20\d{2}-\d{2}-\d{2}$/.test(deadlineIso)) {
     return { ok: false, code: "DEADLINE_FORMAT", message: "Choose a deadline as YYYY-MM-DD." };
+  }
+  // Contract parity for the horizon. The chain refuses a deadline that is not
+  // still ahead of now, or is further out than it accepts, so say it here
+  // rather than after the user has already signed.
+  const horizon = deadlineHorizonSeconds(deadlineIso);
+  if (horizon !== null && horizon < MIN_HORIZON_SECONDS) {
+    return {
+      ok: false,
+      code: "DEADLINE_PAST",
+      message: "That deadline is not ahead of you. A forecast needs time left to be called.",
+    };
+  }
+  if (horizon !== null && horizon > MAX_HORIZON_SECONDS) {
+    return {
+      ok: false,
+      code: "DEADLINE_HORIZON",
+      message: "That deadline is too far out. A forecast can be at most ten years ahead.",
+    };
   }
   const dates = explicitDates(cleaned);
   if (dates.size === 0 || QUARTER.test(cleaned) || (VAGUE.test(cleaned) && !dates.has(deadlineIso))) {

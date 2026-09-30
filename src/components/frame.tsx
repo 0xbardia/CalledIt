@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Mark, Wordmark } from "@/components/logo";
+import { ConnectProblemNote } from "@/components/connect-problem";
 
 const desk = [
   ["Record", "/explore"],
@@ -82,6 +83,7 @@ export function Frame({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      <ConnectProblemBanner />
       <div id="content" key={path} className="page-enter relative z-10">{children}</div>
       <footer className="site-footer relative z-10">
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-3">
@@ -137,5 +139,18 @@ function WalletSlot() {
         );
       }}
     </ConnectButton.Custom>
+  );
+}
+
+/**
+ * Tells the user, in the page rather than behind a modal, when the connect
+ * button cannot work. Without this, someone with no wallet extension clicks
+ * "Browser wallet" and waits forever for an extension that is not installed.
+ */
+function ConnectProblemBanner() {
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
+      <ConnectProblemNote />
+    </div>
   );
 }

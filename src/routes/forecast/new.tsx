@@ -173,10 +173,18 @@ function NewForecast() {
           <input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} className="field" />
         </label>
         {mode === "IMPORTED" ? (
-          <label className="block">
-            <span className="text-sm font-semibold">Public page that already contains this sentence</span>
-            <input value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://x.com/…" className="field" />
-          </label>
+          <>
+            <label className="block">
+              <span className="text-sm font-semibold">Public page that already contains this sentence</span>
+              <input value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://x.com/…" className="field" />
+            </label>
+            <p className="note">
+              CalledIt fetches this page itself and checks that your sentence is really on it. If
+              the page is behind a login, needs JavaScript, or does not contain the sentence
+              word for word, the lock is refused and nothing is stored. Nothing here is marked
+              verified until the chain has read the page.
+            </p>
+          </>
         ) : null}
         {!check.ok ? <p className="note note-warn" role="status">{check.message}</p> : <p className="note note-good">The sentence names its own deadline. The chain still has to accept the reading.</p>}
         {error ? <p className={phase === "failed" ? "note note-bad" : "note"} role={phase === "failed" ? "alert" : "status"}>{error}</p> : null}
