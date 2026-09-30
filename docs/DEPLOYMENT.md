@@ -55,6 +55,7 @@ Production must also set `NODE_ENV=production` and `ALLOW_SIMULATOR=false`.
 
 ```bash
 npm run build
+export NODE_BIN=/root/.nvm/versions/node/v22.23.2/bin/node
 pm2 delete calledit
 pm2 start ecosystem.config.cjs
 pm2 save
@@ -66,6 +67,20 @@ applies pending files in `migrations/` to `DATABASE_URL` inside one transaction
 each and records them in `_migrations`. It is safe to re-run. The build step
 inherits `.env` for `VITE_` values, so rebuild after any browser-visible
 configuration change.
+
+**Start the app on Node 22, and set `NODE_BIN` rather than trusting the shell.**
+`ecosystem.config.cjs` uses `process.env.NODE_BIN || process.execPath`, so an
+unset `NODE_BIN` silently pins the app to whichever `node` the PM2 CLI resolved
+on the deploying shell. This server has several Node versions installed and
+`pm2` itself lives under the 20.x one, so an unqualified `pm2 start` runs the
+app on Node 20 while the PM2 dump still says 22. Nothing fails loudly: the site
+serves normally, but the 195 script tests cannot run there, because
+`node --test` only expands the `scripts/**/*.test.mjs` glob on Node 22 and
+silently finds nothing on 20. Check the interpreter after every restart:
+
+```bash
+readlink -f /proc/$(pm2 pid calledit | tr -d '[:space:]')/exe
+```
 
 **The process must be restarted after every build, and `startOrReload` is not
 enough.** The worker renders HTML from the bundle it loaded at start, so a
