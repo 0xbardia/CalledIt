@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useChainModal, useConnectModal } from "@rainbow-me/rainbowkit";
 import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { api } from "@/lib/api";
@@ -31,6 +31,9 @@ function NewForecast() {
   const navigate = useNavigate();
   const account = useAccount();
   const { openConnectModal } = useConnectModal();
+  // Authoritative network check happens in lockOnchain against the provider
+  // itself. This flag only drives the early, visible warning.
+  const { openChainModal } = useChainModal();
   const [text, setText] = useState("BTC will trade above $150,000 before December 31, 2027.");
   const [deadline, setDeadline] = useState("2027-12-31");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -46,6 +49,10 @@ function NewForecast() {
   const source = mode === "IMPORTED" ? preflightSourceUrl(sourceUrl, protocol?.importDomains) : ({ ok: true } as const);
   const check = !sentence.ok ? sentence : !source.ok ? source : ({ ok: true } as const);
   const connected = mounted && Boolean(account.address && account.connector);
+  // A wallet on another chain cannot lock anything. Catch it before the
+  // signature, instead of letting the send fail with a network-shaped error.
+  // `account.chainId` is the chain the wallet itself reports.
+  const wrongNetwork = connected && Boolean(protocol) && Number(account.chainId) !== protocol?.chainId;
 
   useEffect(() => {
     setMounted(true);
@@ -58,9 +65,26 @@ function NewForecast() {
   async function lockOnchain() {
     if (!protocol?.contractConfigured) return;
     if (submitting.current) return;
+    if (wrongNetwork) {
+      setError("Your wallet is on the wrong network. Nothing was sent and nothing was locked. Switch it to the network named above, then try again.");
+      return;
+    }
     if (!account.address || !account.connector) {
       openConnectModal?.();
       return;
+    }
+    // Ask the wallet which network it is really on, not the cached hook value.
+    // A send on the wrong chain is the one failure a user cannot undo.
+    try {
+      const signer = (await account.connector.getProvider()) as { request?: (args: { method: string }) => Promise<unknown> } | undefined;
+      const reported = (await signer?.request?.({ method: "eth_chainId" })) as string | undefined;
+      if (reported && Number(reported) !== protocol.chainId) {
+        setError("Your wallet is on the wrong network. Nothing was sent and nothing was locked. Switch it to the network named above, then try again.");
+        return;
+      }
+    } catch {
+      // A wallet that will not report its chain is not a reason to block the
+      // send; the send itself still fails safely and says so.
     }
     submitting.current = true;
     setError("");
@@ -200,11 +224,31 @@ function NewForecast() {
         <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
           <li>{mode === "NATIVE" ? "You are writing the forecast here." : "You are pointing at a public post."}</li>
           <li>Deadline: {deadline || "not set"}.</li>
-          <li>{connected ? `Signing as ${account.address}` : "No wallet connected yet. The next step connects one."}</li>
+          <li>
+            {connected ? (
+              <>
+                Signing as <span className="break-all">{account.address}</span>
+              </>
+            ) : (
+              "No wallet connected yet. The next step connects one."
+            )}
+          </li>
           <li>You cannot edit, delete, or backdate this after it locks.</li>
           <li>The server will not sign, and it is not asked for a key.</li>
+          {protocol ? <li>Network: {protocol.network} (chain {protocol.chainId}).</li> : null}
         </ul>
-        <button type="button" disabled={!check.ok || !protocol?.contractConfigured || phase === "approval" || phase === "submitted" || phase === "accepted"} onClick={lockOnchain} className="btn-lock mt-6 w-full disabled:opacity-50">
+        {wrongNetwork && protocol ? (
+          <div className="note note-warn mt-4" role="alert">
+            <p>
+              Your wallet is on a different network, not {protocol.network}. Nothing can be locked on the
+              wrong network, so the sign button stays closed until you switch.
+            </p>
+            <button type="button" className="btn-line mt-3 w-full" onClick={() => openChainModal?.()}>
+              Switch network
+            </button>
+          </div>
+        ) : null}
+        <button type="button" disabled={!check.ok || !protocol?.contractConfigured || wrongNetwork || phase === "approval" || phase === "submitted" || phase === "accepted"} onClick={lockOnchain} className="btn-lock mt-6 w-full disabled:opacity-50">
           {signLabel}
         </button>
         {protocol?.contractAddress ? <p className="mt-3 break-all text-sm leading-6 text-muted">Contract {protocol.contractAddress}</p> : null}

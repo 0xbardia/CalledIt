@@ -20,6 +20,43 @@ const CODES: Record<string, string> = {
   NOT_FOUND: "That forecast is not on this contract.",
 };
 
+const CLIENT: [RegExp, string][] = [
+  [
+    /ChainMismatch|chain mismatch|Unsupported chain|wrong network|network mismatch|SwitchChainError/i,
+    "Your wallet is on the wrong network, so nothing was sent and nothing was locked. Switch it to the network named above, then try again.",
+  ],
+  [
+    /Transaction (could not be found|reverted|failed)|could not be found/i,
+    "Your wallet sent the transaction, but it never appeared on the network. Nothing was locked. Check that your wallet is on the GenLayer network, then try again.",
+  ],
+  [
+    /user (rejected|denied)|rejected the request/i,
+    "You declined in your wallet, so nothing was sent and nothing was locked.",
+  ],
+  [/ChainDisconnected|TransportNotFound|HttpRequestError|fetch failed|network ?error|Load failed/i,
+    "The connection to the network dropped before the answer came back. Nothing was locked. Check your connection and try again."],
+  [/timeout|timed out/i,
+    "The network did not answer in time. Nothing was locked. Try again in a moment."],
+  [/insufficient funds/i,
+    "That wallet does not have enough funds for this transaction. Nothing was locked."],
+];
+
+/**
+ * Wallet and RPC failures arrive as library strings — "Transaction could not be
+ * found. Version: viem@2.56.9" tells a reader nothing about what to do next.
+ * Return a sentence they can act on, and keep the raw text out of the page.
+ */
+function explainClientError(message: string): string {
+  for (const [pattern, text] of CLIENT) {
+    if (pattern.test(message)) return text;
+  }
+  // Never show a raw library string: it names packages and versions, not causes.
+  if (/version:|viem@|genlayer-js|undefined \(reading|\bat \w+\./i.test(message)) {
+    return "The wallet step failed and the reason was not readable. Nothing was locked. Try again, and if it keeps happening the network may be down.";
+  }
+  return message;
+}
+
 /** Turn a contract or client error into a sentence a person can act on. */
 export function explainChainError(message: string): string {
   if (/Timed out waiting for transaction/i.test(message)) {
@@ -31,5 +68,5 @@ export function explainChainError(message: string): string {
   for (const [code, text] of Object.entries(CODES)) {
     if (message.includes(code)) return text;
   }
-  return message;
+  return explainClientError(message);
 }

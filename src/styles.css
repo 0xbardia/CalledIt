@@ -100,7 +100,11 @@
     margin: 0.75rem auto 0;
     width: min(76rem, calc(100% - 1rem));
     border-radius: 1.4rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
+    /* Opaque enough to read on its own. The bar is sticky, so page content
+       scrolls behind it: a translucent fill only stays legible while
+       backdrop-filter is actually applied, and the production build drops the
+       unprefixed property the current engines require. Never depend on it. */
+    background: linear-gradient(180deg, rgba(28, 32, 44, 0.96), rgba(16, 18, 26, 0.96));
     border: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 18px 40px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(14px) saturate(1.5);

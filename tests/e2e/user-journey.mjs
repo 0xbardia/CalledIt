@@ -179,6 +179,64 @@ async function run(browserType, name) {
   add("no wallet is explained in the page", notice.length > 40, notice.slice(0, 110));
   await ctxN.close();
 
+  // sticky header must stay readable over scrolled content.
+  // Regression: the build dropped the unprefixed `backdrop-filter`, so the
+  // translucent bar let page text collide with the nav on every scroll.
+  await p.goto(`${BASE}/forecast/new`, { waitUntil: "load" }); await settle(); await interactive();
+  await p.evaluate(() => window.scrollTo(0, 500));
+  await p.waitForTimeout(500);
+  const bar = await p.evaluate(() => {
+    const h = document.querySelector("header.mast");
+    if (!h) return null;
+    return { bg: getComputedStyle(h).backgroundColor, img: getComputedStyle(h).backgroundImage };
+  });
+  // Alpha of the header's own fill, ignoring the gradient's colour stops.
+  const alpha = await p.evaluate(() => {
+    const h = document.querySelector("header.mast");
+    if (!h) return 0;
+    const m = getComputedStyle(h).backgroundImage.match(/rgba?\([^)]*?([\d.]+)\)\s*[,)]/g) || [];
+    const stops = m.map((s) => parseFloat((s.match(/([\d.]+)\s*\)/) || [])[1])).filter((n) => !Number.isNaN(n));
+    if (stops.length) return Math.min(...stops);
+    const c = getComputedStyle(h).backgroundColor.match(/[\d.]+/g) || [];
+    return c.length > 3 ? parseFloat(c[3]) : 0;
+  });
+  add("sticky header is opaque enough to read over content", alpha >= 0.9, `min alpha ${alpha} bg=${JSON.stringify(bar)}`);
+  await p.evaluate(() => window.scrollTo(0, 0));
+
+  // wrong network: the form must refuse to open a signature it cannot land.
+  const ctxWN = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await ctxWN.addInitScript(() => {
+    const acct = "0x1a6a7c4C5eE6b8B2d3F1a9C0d4E5f6A7b8C9d0E1";
+    const p = {
+      isMetaMask: true, isConnected: true, chainId: "0x1", // Ethereum mainnet
+      on() {}, removeListener() {},
+      request: async ({ method }) => {
+        if (method === "eth_requestAccounts" || method === "eth_accounts") return [acct];
+        if (method === "eth_chainId") return "0x1";
+        if (method === "net_version") return "1";
+        window.__sent = (window.__sent || 0);
+        if (method === "eth_sendTransaction") window.__sent += 1;
+        return null;
+      },
+      send(m, p2) { return this.request(typeof m === "string" ? { method: m, params: p2 } : m); },
+      sendAsync(m, cb) { this.request(typeof m === "string" ? { method: m, params: m.params } : m).then((r) => cb(null, { result: r })).catch((e) => cb(e)); },
+    };
+    Object.defineProperty(window, "ethereum", { value: p, configurable: true, writable: true });
+    window.dispatchEvent(new Event("ethereum#initialized"));
+  });
+  const pwn = await ctxWN.newPage();
+  await pwn.goto(`${BASE}/forecast/new`, { waitUntil: "load" });
+  await pwn.waitForTimeout(3500);
+  const wnText = (await pwn.locator("aside").innerText().catch(() => "")).replace(/\s+/g, " ");
+  add("wrong network is named before signing", /not studionet|wrong network/i.test(wnText), wnText.slice(0, 130));
+  add("expected network is stated", /chain 61999/i.test(wnText), wnText.slice(0, 130));
+  add("a switch-network action is offered", (await pwn.getByRole("button", { name: /switch network/i }).count()) > 0);
+  add("sign is blocked on the wrong network", await pwn.getByRole("button", { name: /sign with your wallet/i }).isDisabled().catch(() => true));
+  await pwn.getByRole("button", { name: /sign with your wallet/i }).click({ force: true, timeout: 3000 }).catch(() => undefined);
+  await pwn.waitForTimeout(1500);
+  add("no transaction is sent on the wrong network", (await pwn.evaluate(() => window.__sent || 0)) === 0, `sent=${await pwn.evaluate(() => window.__sent || 0)}`);
+  await ctxWN.close();
+
   // mobile
   for (const width of [320, 390]) {
     const ctxM = await browser.newContext({ viewport: { width, height: 780 }, isMobile: true, hasTouch: true });
@@ -191,6 +249,32 @@ async function run(browserType, name) {
       add(`mobile ${width} ${label} no overflow`, !over);
       if (width === 390) await pm.screenshot({ path: `${OUT}/${name}-${width}-${label}.png` });
     }
+    // Regression: the connected wallet address is 42 unbroken characters, so
+    // the form's grid track grew past a 320px viewport.
+    await ctxM.addInitScript(() => {
+      const acct = "0x1a6a7c4C5eE6b8B2d3F1a9C0d4E5f6A7b8C9d0E1";
+      const p = {
+        isMetaMask: true, isConnected: true, chainId: "0xf22f",
+        on() {}, removeListener() {},
+        request: async ({ method }) => {
+          if (method === "eth_requestAccounts" || method === "eth_accounts") return [acct];
+          if (method === "eth_chainId") return "0xf22f";
+          if (method === "net_version") return "61999";
+          return null;
+        },
+        send(m, p2) { return this.request(typeof m === "string" ? { method: m, params: p2 } : m); },
+        sendAsync(m, cb) { this.request(typeof m === "string" ? { method: m, params: m.params } : m).then((r) => cb(null, { result: r })).catch((e) => cb(e)); },
+      };
+      Object.defineProperty(window, "ethereum", { value: p, configurable: true, writable: true });
+      window.dispatchEvent(new Event("ethereum#initialized"));
+    });
+    const pc = await ctxM.newPage();
+    await pc.goto(`${BASE}/forecast/new`, { waitUntil: "load" });
+    await pc.waitForTimeout(3000);
+    const connected = await pc.evaluate(() => (document.querySelector("main")?.innerText || "").includes("Signing as 0x"));
+    const overConn = await pc.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+    add(`mobile ${width} connected form no overflow`, !connected || !overConn, connected ? "wallet connected" : "wallet not connected; not exercised");
+    if (width === 320 && connected) await pc.screenshot({ path: `${OUT}/${name}-320-form-connected.png` });
     await ctxM.close();
   }
 
